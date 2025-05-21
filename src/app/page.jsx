@@ -8,18 +8,8 @@ export default function ClimaLux() {
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [darkMode, setDarkMode] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [favoriteCity, setFavoriteCity] = useState('')  // مقدار اولیه خالی
 
   const token = '908907:680a3be23f7a8'
-
-  // بارگذاری favoriteCity از localStorage فقط در کلاینت
-  useEffect(() => {
-    const savedCity = localStorage.getItem('favoriteCity')
-    if (savedCity) {
-      setFavoriteCity(savedCity)
-    }
-  }, [])
 
   useEffect(() => {
     if (!city) return
@@ -27,7 +17,6 @@ export default function ClimaLux() {
     const fetchWeatherData = async () => {
       setError(null)
       setDatafetch(null)
-      setLoading(true)
       try {
         const response = await fetch(
           `https://one-api.ir/weather/?token=${token}&action=current&city=${encodeURIComponent(city)}`
@@ -45,8 +34,6 @@ export default function ClimaLux() {
       } catch (err) {
         setError(err.message)
         setDatafetch(null)
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -61,15 +48,8 @@ export default function ClimaLux() {
     }
   }, [darkMode])
 
-  // ذخیره شهر مورد علاقه در localStorage
-  const saveFavoriteCity = () => {
-    if (!city) return
-    localStorage.setItem('favoriteCity', city)
-    setFavoriteCity(city)
-  }
-
   const handleSearch = () => {
-    if (!input.trim() || loading) return
+    if (!input.trim()) return
     setCity(input.trim())
   }
 
@@ -79,9 +59,12 @@ export default function ClimaLux() {
     setCity('تهران')
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSearch()
-    if (e.key === 'Escape') setInput('')
+  if (!datafetch && !error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#0f2027] via-[#203a43] to-[#2c5364] dark:from-[#1f2937] dark:via-[#374151] dark:to-[#4b5563] text-white px-4">
+        <p className="text-lg animate-pulse tracking-wide opacity-70">در حال بارگذاری داده‌های جوی...</p>
+      </div>
+    )
   }
 
   return (
@@ -89,23 +72,6 @@ export default function ClimaLux() {
       className={`min-h-screen px-6 py-10 flex flex-col items-center font-sans relative overflow-hidden transition-colors duration-700
       ${darkMode ? 'bg-gradient-to-b from-[#0f2027] via-[#203a43] to-[#2c5364] text-white' : 'bg-gradient-to-b from-[#e0f7fa] via-[#b2ebf2] to-[#80deea] text-gray-900'}`}
     >
-      <div
-        className="
-          absolute top-8 left-8
-          bg-gradient-to-r from-purple-400 via-pink-500 to-red-500
-          bg-clip-text text-transparent
-          font-extrabold text-3xl italic
-          drop-shadow-[0_2px_10px_rgba(255,0,128,0.7)]
-          select-none
-          animate-gradient-x
-        "
-        style={{
-          backgroundSize: '200% 200%',
-        }}
-      >
-        Hamid Reza Nikbakht
-      </div>
-
       {/* دکمه تغییر تم */}
       <button
         onClick={() => setDarkMode(!darkMode)}
@@ -146,53 +112,31 @@ export default function ClimaLux() {
           placeholder="مثلاً مشهد..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className={`flex-1 px-6 py-4 rounded-3xl backdrop-blur-md shadow-inner focus:outline-none focus:ring-4 transition duration-300
           ${
             darkMode
               ? 'bg-[#1f1f1f] text-white focus:ring-[#84fab0]/70'
               : 'bg-white text-gray-900 focus:ring-[#00c9ff]/70'
           }`}
-          disabled={loading}
-          aria-label="ورودی نام شهر"
         />
         <button
           onClick={handleSearch}
-          disabled={loading || !input.trim()}
-          className={`px-8 py-4 rounded-3xl text-white font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform duration-300 ${
-            loading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-tr from-[#84fab0] to-[#8fd3f4]'
-          }`}
-          aria-label="دکمه جستجوی شهر"
+          className="px-8 py-4 bg-gradient-to-tr from-[#84fab0] to-[#8fd3f4] rounded-3xl text-white font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform duration-300"
         >
-          {loading ? 'در حال جستجو...' : 'جستجو'}
+          جستجو
         </button>
         <button
           onClick={resetSearch}
           className="px-6 py-4 bg-red-500 rounded-3xl text-white font-semibold shadow-md hover:bg-red-600 transition-colors"
           title="پاک کردن"
-          aria-label="دکمه پاک کردن ورودی"
         >
           ریست
         </button>
       </div>
 
-      {/* دکمه ذخیره شهر مورد علاقه */}
-      <button
-        onClick={saveFavoriteCity}
-        className="mb-10 px-8 py-3 bg-green-500 rounded-3xl text-white font-semibold shadow-md hover:bg-green-600 transition-colors"
-        aria-label="ذخیره شهر مورد علاقه"
-      >
-        ذخیره شهر مورد علاقه {favoriteCity && `: ${favoriteCity}`}
-      </button>
-
       {error && (
-        <div
-          className="max-w-xl w-full bg-red-600/80 rounded-xl p-4 mb-10 text-center font-semibold shadow-lg animate-fade-in"
-          role="alert"
-          aria-live="assertive"
-        >
+        <div className="max-w-xl w-full bg-red-600/80 rounded-xl p-4 mb-10 text-center font-semibold shadow-lg animate-fade-in">
           {error}
         </div>
       )}
@@ -202,7 +146,6 @@ export default function ClimaLux() {
           className={`w-full max-w-3xl p-12 space-y-10 rounded-3xl shadow-2xl backdrop-blur-xl border ${
             darkMode ? 'bg-white/10 border-white/20 text-white' : 'bg-white/80 border-gray-300 text-gray-900'
           } animate-fade-in-slow`}
-          aria-live="polite"
         >
           <div className="text-center space-y-3">
             <h2 className="text-5xl font-extrabold">{city}</h2>
@@ -212,40 +155,53 @@ export default function ClimaLux() {
             </p>
           </div>
 
-          <div className="flex justify-center gap-6 items-center flex-wrap">
-            <p className="text-7xl font-bold drop-shadow-lg">
-              {datafetch.result.weather[0].temp}
-              <sup>°C</sup>
-            </p>
-
+          <div className="flex justify-center">
             <img
+              src={`https://openweathermap.org/img/wn/${datafetch.result.weather[0].icon}@4x.png`}
               alt={datafetch.result.weather[0].description}
-              title={datafetch.result.weather[0].description}
-              width={100}
-              height={100}
-              src={`https://openweathermap.org/img/wn/${datafetch.result.weather[0].icon}@2x.png`}
-              decoding="async"
-              loading="lazy"
-              className="drop-shadow-xl"
+              className="w-32 h-32 drop-shadow-[0_10px_15px_rgba(255,255,255,0.5)]"
             />
           </div>
 
-          <div className="flex justify-center gap-6 flex-wrap">
-            <div className="space-y-1">
-              <p className="font-bold text-xl text-gray-400 dark:text-gray-300">حداکثر دما</p>
-              <p className="font-bold text-2xl">{datafetch.result.weather[0].temp_max} °C</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-bold text-xl text-gray-400 dark:text-gray-300">حداقل دما</p>
-              <p className="font-bold text-2xl">{datafetch.result.weather[0].temp_min} °C</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-bold text-xl text-gray-400 dark:text-gray-300">رطوبت</p>
-              <p className="font-bold text-2xl">{datafetch.result.weather[0].humidity} %</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-center">
+            {[
+              { label: 'دما', value: `${datafetch.result.main.temp}°C` },
+              { label: 'احساس', value: `${datafetch.result.main.feels_like}°C` },
+              { label: 'رطوبت', value: `${datafetch.result.main.humidity}%` },
+              { label: 'باد', value: `${datafetch.result.wind.speed} m/s` },
+              { label: 'پوشش ابر', value: `${datafetch.result.clouds.all}%` },
+              { label: 'فشار هوا', value: `${datafetch.result.main.pressure} hPa` },
+              { label: 'طلوع آفتاب', value: new Date(datafetch.result.sys.sunrise * 1000).toLocaleTimeString('fa-IR') },
+              { label: 'غروب آفتاب', value: new Date(datafetch.result.sys.sunset * 1000).toLocaleTimeString('fa-IR') },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white/5 hover:bg-white/15 p-6 rounded-3xl transition shadow-lg hover:shadow-xl cursor-default select-none"
+              >
+                <div className="text-3xl font-bold">{item.value}</div>
+                <div className="text-sm mt-2 text-gray-300 dark:text-gray-200">{item.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes fadeInSlow {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fade-in-slow {
+          animation: fadeInSlow 1.2s ease forwards;
+        }
+        .animate-fade-in {
+          animation: fadeInSlow 0.8s ease forwards;
+        }
+      `}</style>
     </div>
   )
 }
